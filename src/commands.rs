@@ -1,17 +1,22 @@
-use std::fs::read_to_string;
+use crossterm::{cursor::MoveUp, style::Print, terminal, ExecutableCommand};
+use std::{
+    fs::read_to_string,
+    io::{stdout, Write},
+};
 
 pub trait Command {
-    fn execute(&self);
+    fn execute(&mut self);
 
-    fn scroll_down(&mut self);
+    fn scroll_down(&mut self) -> bool;
 
-    fn scroll_up(&mut self);
+    fn scroll_up(&mut self) -> bool;
 }
 
 pub struct MoreCommand {
     pub option: String,
     pub content: String,
-    pub end_line_index: i32,
+    pub buffer: Vec<String>,
+    pub start_line_index: usize,
 }
 
 impl MoreCommand {
@@ -21,31 +26,83 @@ impl MoreCommand {
         MoreCommand {
             option,
             content,
-            end_line_index: 5,
+            buffer: vec![],
+            start_line_index: 0,
         }
+    }
+
+    fn indicate(&self) {
+        let mut stdout = stdout();
+        let (_width, height) = terminal::size().expect("Could not get terminal size");
+
+        stdout
+            .execute(terminal::Clear(terminal::ClearType::All))
+            .unwrap()
+            .execute(MoveUp(height))
+            .unwrap()
+            .execute(Print(
+                self.buffer[self.start_line_index..(self.start_line_index + (height as usize))]
+                    .iter()
+                    .map(|line| format!("\r{}\n", line))
+                    .collect::<Vec<String>>()
+                    .join(""),
+            ))
+            .unwrap()
+            .flush()
+            .expect("Failed to scroll");
     }
 }
 
 impl Command for MoreCommand {
-    fn execute(&self) {
+    fn execute(&mut self) {
         let mut lines = self.content.lines();
 
-        for _ in 0..self.end_line_index {
+        loop {
             let line = lines.next();
 
-            println!("{}\r", line.unwrap());
+            if line == None {
+                break;
+            }
+
+            self.buffer.push(line.unwrap().to_string());
         }
+
+        let mut stdout = stdout();
+
+        let (_width, height) = terminal::size().expect("Could not get terminal size");
+
+        stdout
+            .execute(Print(
+                self.buffer[self.start_line_index..(self.start_line_index + (height as usize))]
+                    .iter()
+                    .map(|line| format!("\r{}\n", line))
+                    .collect::<Vec<String>>()
+                    .join(""),
+            ))
+            .expect("sth wrong");
     }
 
-    fn scroll_down(&mut self) {
-        self.end_line_index += 1;
+    fn scroll_down(&mut self) -> bool {
+        let (_width, height) = terminal::size().expect("Could not get terminal size");
 
-        self.execute();
+        if self.start_line_index >= self.buffer.len() - height as usize {
+            return false;
+        }
+
+        self.start_line_index += 1;
+
+        self.indicate();
+
+        return true;
     }
 
-    fn scroll_up(&mut self) {
-        self.end_line_index -= 1;
+    fn scroll_up(&mut self) -> bool {
+        if self.start_line_index > 0 {
+            self.start_line_index -= 1;
+        }
 
-        self.execute();
+        self.indicate();
+
+        return true;
     }
 }
