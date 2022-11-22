@@ -1,43 +1,13 @@
-use crate::commands::Command;
-use clap::{Arg, ArgMatches};
-use commands::MoreCommand;
-
+mod cli;
+mod cli_parser;
 mod commands;
 mod keyboard;
 
-struct CliParser {
-    command: Option<String>,
-    option: Option<String>,
-    file_path: Option<String>,
-}
+use clap::Arg;
 
-impl From<ArgMatches> for CliParser {
-    fn from(matches: ArgMatches) -> Self {
-        CliParser {
-            command: matches.get_one::<String>("command").cloned(),
-            option: matches.get_one::<String>("option").cloned(),
-            file_path: matches.get_one::<String>("file_path").cloned(),
-        }
-    }
-}
-
-struct Cli {
-    command: Option<Box<dyn Command>>,
-}
-
-impl Cli {
-    fn new() -> Cli {
-        Cli { command: None }
-    }
-
-    fn set_command(&mut self, new_command: Box<dyn Command>) {
-        self.command = Some(new_command);
-    }
-
-    fn get_command(&mut self) -> &mut Option<Box<dyn Command>> {
-        &mut self.command
-    }
-}
+use cli::Cli;
+use cli_parser::CliParser;
+use commands::MoreCommand;
 
 fn main() {
     let mut cli = Cli::new();
