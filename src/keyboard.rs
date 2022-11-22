@@ -14,13 +14,8 @@ pub fn listen(command: &mut Box<dyn Command>) {
                         break;
                     }
                 }
-                KeyCode::Up => match command.scroll_up() {
-                    _ => {}
-                },
-                KeyCode::Down | KeyCode::Enter => match command.scroll_down() {
-                    true => {}
-                    false => break,
-                },
+                KeyCode::Up => command.scroll_up(),
+                KeyCode::Down | KeyCode::Enter => command.scroll_down(),
                 _ => {}
             },
             _ => {}

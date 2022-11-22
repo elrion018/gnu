@@ -7,25 +7,27 @@ use std::{
 pub trait Command {
     fn execute(&mut self);
 
-    fn scroll_down(&mut self) -> bool;
+    fn scroll_down(&mut self);
 
-    fn scroll_up(&mut self) -> bool;
+    fn scroll_up(&mut self);
 }
 
 pub struct MoreCommand {
     pub option: String,
     pub content: String,
+    pub file_path: String,
     pub buffer: Vec<String>,
     pub start_line_index: usize,
 }
 
 impl MoreCommand {
     pub fn new(option: String, file_path: String) -> MoreCommand {
-        let content = read_to_string(file_path).expect("could not read file");
+        let content = read_to_string(&file_path).expect("could not read file");
 
         MoreCommand {
             option,
             content,
+            file_path,
             buffer: vec![],
             start_line_index: 0,
         }
@@ -33,13 +35,13 @@ impl MoreCommand {
 
     fn indicate(&self) {
         let mut stdout = stdout();
-        let (_width, height) = terminal::size().expect("Could not get terminal size");
+        let height = self.get_terminal_height();
 
         stdout
             .execute(terminal::Clear(terminal::ClearType::All))
-            .unwrap()
-            .execute(MoveUp(height))
-            .unwrap()
+            .expect("Could not clear All lines")
+            .execute(MoveUp(height as u16))
+            .expect("Could not move cursor to up")
             .execute(Print(
                 self.buffer[self.start_line_index..(self.start_line_index + (height as usize))]
                     .iter()
@@ -47,9 +49,41 @@ impl MoreCommand {
                     .collect::<Vec<String>>()
                     .join(""),
             ))
-            .unwrap()
+            .expect("Could not print lines")
             .flush()
-            .expect("Failed to scroll");
+            .expect("Could not flush");
+
+        match self.check_is_before_end_scroll() {
+            true => stdout.execute(Print("END")),
+            false => stdout.execute(Print(":")),
+        }
+        .unwrap();
+    }
+
+    pub fn check_is_end_scroll(&self) -> bool {
+        let height = self.get_terminal_height();
+
+        if self.start_line_index > self.buffer.len() - height {
+            return true;
+        }
+
+        return false;
+    }
+
+    pub fn check_is_before_end_scroll(&self) -> bool {
+        let height = self.get_terminal_height();
+
+        if self.start_line_index == self.buffer.len() - height {
+            return true;
+        }
+
+        return false;
+    }
+
+    fn get_terminal_height(&self) -> usize {
+        let (_, height) = terminal::size().expect("Could not get terminal size");
+
+        height as usize
     }
 }
 
@@ -69,7 +103,7 @@ impl Command for MoreCommand {
 
         let mut stdout = stdout();
 
-        let (_width, height) = terminal::size().expect("Could not get terminal size");
+        let height = self.get_terminal_height();
 
         stdout
             .execute(Print(
@@ -79,30 +113,33 @@ impl Command for MoreCommand {
                     .collect::<Vec<String>>()
                     .join(""),
             ))
-            .expect("sth wrong");
+            .expect("Could not get lines")
+            .execute(Print(&self.file_path))
+            .expect("Could not get file path");
     }
 
-    fn scroll_down(&mut self) -> bool {
-        let (_width, height) = terminal::size().expect("Could not get terminal size");
-
-        if self.start_line_index >= self.buffer.len() - height as usize {
-            return false;
-        }
-
+    fn scroll_down(&mut self) {
         self.start_line_index += 1;
 
-        self.indicate();
+        if self.check_is_end_scroll() {
+            let mut stdout = stdout();
 
-        return true;
+            stdout
+                .execute(terminal::Clear(terminal::ClearType::CurrentLine))
+                .expect("Colud not clear current line");
+
+            terminal::disable_raw_mode().expect("Could not disable raw mode");
+
+            std::process::exit(exitcode::OK);
+        }
+        self.indicate();
     }
 
-    fn scroll_up(&mut self) -> bool {
+    fn scroll_up(&mut self) {
         if self.start_line_index > 0 {
             self.start_line_index -= 1;
         }
 
         self.indicate();
-
-        return true;
     }
 }
