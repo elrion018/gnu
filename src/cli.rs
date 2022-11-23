@@ -1,4 +1,5 @@
 use crate::commands::Command;
+use crate::keyboard::Keyboard;
 
 pub struct Cli {
     command: Option<Box<dyn Command>>,
@@ -9,11 +10,14 @@ impl Cli {
         Cli { command: None }
     }
 
-    pub fn set_command(&mut self, new_command: Box<dyn Command>) {
-        self.command = Some(new_command);
+    pub fn execute(&mut self) {
+        let command = self.command.as_mut().unwrap();
+
+        command.execute();
+        Keyboard::listen(command);
     }
 
-    pub fn get_command(&mut self) -> &mut Option<Box<dyn Command>> {
-        &mut self.command
+    pub fn set_command(&mut self, new_command: Box<dyn Command>) {
+        self.command = Some(new_command);
     }
 }
