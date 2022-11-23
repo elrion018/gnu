@@ -17,8 +17,11 @@ impl Keyboard {
                             break;
                         }
                     }
-                    KeyCode::Up => command.scroll_up(),
-                    KeyCode::Down | KeyCode::Enter => command.scroll_down(),
+                    KeyCode::Char('q') => break,
+                    KeyCode::Char('f') => command.click_f(),
+                    KeyCode::Char('b') => command.click_b(),
+                    KeyCode::Up => command.click_up(),
+                    KeyCode::Down | KeyCode::Enter => command.click_down(),
                     _ => {}
                 },
                 _ => {}

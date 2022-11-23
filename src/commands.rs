@@ -7,9 +7,13 @@ use std::{
 pub trait Command {
     fn execute(&mut self);
 
-    fn scroll_down(&mut self) {}
+    fn click_down(&mut self) {}
 
-    fn scroll_up(&mut self) {}
+    fn click_up(&mut self) {}
+
+    fn click_f(&mut self) {}
+
+    fn click_b(&mut self) {}
 }
 
 pub struct MoreCommand {
@@ -118,7 +122,7 @@ impl Command for MoreCommand {
             .expect("Could not get file path");
     }
 
-    fn scroll_down(&mut self) {
+    fn click_down(&mut self) {
         self.start_line_index += 1;
 
         if self.check_is_end_scroll() {
@@ -132,12 +136,47 @@ impl Command for MoreCommand {
 
             std::process::exit(exitcode::OK);
         }
+
         self.indicate();
     }
 
-    fn scroll_up(&mut self) {
+    fn click_up(&mut self) {
         if self.start_line_index > 0 {
             self.start_line_index -= 1;
+        }
+
+        self.indicate();
+    }
+
+    fn click_b(&mut self) {
+        let height = self.get_terminal_height();
+
+        if (self.start_line_index as i32 - height as i32) >= 0 {
+            self.start_line_index -= height;
+
+            self.indicate();
+        }
+    }
+
+    fn click_f(&mut self) {
+        let height = self.get_terminal_height();
+
+        if self.start_line_index == self.buffer.len() - height {
+            let mut stdout = stdout();
+
+            stdout
+                .execute(terminal::Clear(terminal::ClearType::CurrentLine))
+                .expect("Colud not clear current line");
+
+            terminal::disable_raw_mode().expect("Could not disable raw mode");
+
+            std::process::exit(exitcode::OK);
+        }
+
+        if self.start_line_index + height > self.buffer.len() - height {
+            self.start_line_index = self.buffer.len() - height
+        } else {
+            self.start_line_index += height;
         }
 
         self.indicate();
