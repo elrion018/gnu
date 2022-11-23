@@ -7,9 +7,9 @@ use std::{
 pub trait Command {
     fn execute(&mut self);
 
-    fn scroll_down(&mut self);
+    fn scroll_down(&mut self) {}
 
-    fn scroll_up(&mut self);
+    fn scroll_up(&mut self) {}
 }
 
 pub struct MoreCommand {

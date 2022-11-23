@@ -3,24 +3,28 @@ use crossterm::{event, terminal};
 
 use crate::commands::Command;
 
-pub fn listen(command: &mut Box<dyn Command>) {
-    terminal::enable_raw_mode().expect("Could not enable raw mode");
+pub struct Keyboard {}
 
-    loop {
-        match event::read().expect("Failed to read event") {
-            event::Event::Key(event) => match event.code {
-                KeyCode::Char('c') => {
-                    if event.modifiers == event::KeyModifiers::CONTROL {
-                        break;
+impl Keyboard {
+    pub fn listen(command: &mut Box<dyn Command>) {
+        terminal::enable_raw_mode().expect("Could not enable raw mode");
+
+        loop {
+            match event::read().expect("Failed to read event") {
+                event::Event::Key(event) => match event.code {
+                    KeyCode::Char('c') => {
+                        if event.modifiers == event::KeyModifiers::CONTROL {
+                            break;
+                        }
                     }
-                }
-                KeyCode::Up => command.scroll_up(),
-                KeyCode::Down | KeyCode::Enter => command.scroll_down(),
+                    KeyCode::Up => command.scroll_up(),
+                    KeyCode::Down | KeyCode::Enter => command.scroll_down(),
+                    _ => {}
+                },
                 _ => {}
-            },
-            _ => {}
+            }
         }
-    }
 
-    terminal::disable_raw_mode().expect("Could not disable raw mode");
+        terminal::disable_raw_mode().expect("Could not disable raw mode");
+    }
 }

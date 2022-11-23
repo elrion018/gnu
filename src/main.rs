@@ -8,6 +8,7 @@ use clap::Arg;
 use cli::Cli;
 use cli_parser::CliParser;
 use commands::MoreCommand;
+use keyboard::Keyboard;
 
 fn main() {
     let mut cli = Cli::new();
@@ -29,5 +30,5 @@ fn main() {
     let command = cli.get_command().as_mut().unwrap();
 
     command.execute();
-    keyboard::listen(command);
+    Keyboard::listen(command);
 }
